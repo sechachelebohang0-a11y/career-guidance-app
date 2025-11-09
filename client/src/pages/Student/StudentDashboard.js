@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/firebase';
 import { collection, query, where, getDocs, addDoc, getDoc, doc, updateDoc } from 'firebase/firestore';
 import JobApplicationForm from '../../components/jobs/JobApplicationForm';
+import CourseApplicationForm from '../../components/forms/CourseApplicationForm';
 import './StudentDashboard.css';
 
 const StudentDashboard = () => {
@@ -12,9 +13,10 @@ const StudentDashboard = () => {
   const [courses, setCourses] = useState([]);
   const [institutions, setInstitutions] = useState([]);
   const [jobs, setJobs] = useState([]);
-  const [showCourseApplication, setShowCourseApplication] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [showJobApplication, setShowJobApplication] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [showCourseApplication, setShowCourseApplication] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -91,6 +93,17 @@ const StudentDashboard = () => {
     setJobs(jobsList);
   };
 
+  const handleCourseApply = (course) => {
+    setSelectedCourse(course);
+    setShowCourseApplication(true);
+  };
+
+  const handleCourseApplicationSuccess = () => {
+    setShowCourseApplication(false);
+    setSelectedCourse(null);
+    fetchStudentApplications(); // Refresh applications list
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
@@ -101,7 +114,7 @@ const StudentDashboard = () => {
         return <BrowseCourses 
           courses={courses} 
           institutions={institutions}
-          onApply={() => setShowCourseApplication(true)}
+          onCourseApply={handleCourseApply}
         />;
       case 'jobs':
         return <BrowseJobs 
@@ -187,16 +200,15 @@ const StudentDashboard = () => {
         {renderTabContent()}
       </main>
 
-      {showCourseApplication && (
+      {/* Course Application Modal - Only shows when a course is selected */}
+      {showCourseApplication && selectedCourse && (
         <CourseApplicationForm 
-          onClose={() => setShowCourseApplication(false)}
-          onSuccess={() => {
+          course={selectedCourse}
+          onClose={() => {
             setShowCourseApplication(false);
-            fetchStudentApplications();
+            setSelectedCourse(null);
           }}
-          courses={courses}
-          institutions={institutions}
-          studentId={user.uid}
+          onSuccess={handleCourseApplicationSuccess}
         />
       )}
 
@@ -351,7 +363,7 @@ const StudentApplications = ({ applications }) => {
   );
 };
 
-const BrowseCourses = ({ courses, institutions, onApply }) => {
+const BrowseCourses = ({ courses, institutions, onCourseApply }) => {
   const [selectedInstitution, setSelectedInstitution] = useState('');
   const [selectedFaculty, setSelectedFaculty] = useState('');
 
@@ -367,9 +379,9 @@ const BrowseCourses = ({ courses, institutions, onApply }) => {
     <div className="browse-courses">
       <div className="section-header">
         <h2>Browse Courses</h2>
-        <button className="btn-primary" onClick={onApply}>
-          Apply for Courses
-        </button>
+        <p className="section-description">
+          Explore available courses from various institutions. Click "Apply for this Course" to submit your application.
+        </p>
       </div>
 
       <div className="filters">
@@ -427,7 +439,10 @@ const BrowseCourses = ({ courses, institutions, onApply }) => {
                 <p>{course.requirements || 'No specific requirements listed.'}</p>
               </div>
               
-              <button className="btn-primary" onClick={onApply}>
+              <button 
+                className="btn-primary" 
+                onClick={() => onCourseApply(course)}
+              >
                 Apply for this Course
               </button>
             </div>
@@ -752,117 +767,6 @@ const StudentProfile = ({ studentData, onProfileUpdate }) => {
             </div>
           </>
         )}
-      </div>
-    </div>
-  );
-};
-
-const CourseApplicationForm = ({ onClose, onSuccess, courses, institutions, studentId }) => {
-  const [formData, setFormData] = useState({
-    institutionId: '',
-    courseId: '',
-    message: ''
-  });
-  const [availableCourses, setAvailableCourses] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  // Update available courses when institution changes
-  useEffect(() => {
-    if (formData.institutionId) {
-      const institutionCourses = courses.filter(course => course.institutionId === formData.institutionId);
-      setAvailableCourses(institutionCourses);
-      // Reset course selection when institution changes
-      setFormData(prev => ({ ...prev, courseId: '' }));
-    } else {
-      setAvailableCourses([]);
-    }
-  }, [formData.institutionId, courses]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.institutionId || !formData.courseId) {
-      alert('Please select both institution and course');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await addDoc(collection(db, 'applications'), {
-        studentId: studentId,
-        institutionId: formData.institutionId,
-        courseId: formData.courseId,
-        status: 'pending',
-        appliedAt: new Date(),
-        message: formData.message
-      });
-      onSuccess();
-    } catch (error) {
-      console.error('Error submitting application:', error);
-      alert('Error submitting application');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="modal">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h3>Apply for Course</h3>
-          <button className="close-btn" onClick={onClose}>×</button>
-        </div>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Select Institution *</label>
-            <select
-              value={formData.institutionId}
-              onChange={(e) => setFormData({...formData, institutionId: e.target.value})}
-              required
-            >
-              <option value="">Choose an institution</option>
-              {institutions.map(inst => (
-                <option key={inst.id} value={inst.id}>{inst.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Select Course *</label>
-            <select
-              value={formData.courseId}
-              onChange={(e) => setFormData({...formData, courseId: e.target.value})}
-              required
-              disabled={!formData.institutionId}
-            >
-              <option value="">{formData.institutionId ? 'Choose a course' : 'Select institution first'}</option>
-              {availableCourses.map(course => (
-                <option key={course.id} value={course.id}>
-                  {course.name} - {course.facultyName}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Additional Message (Optional)</label>
-            <textarea
-              value={formData.message}
-              onChange={(e) => setFormData({...formData, message: e.target.value})}
-              rows="4"
-              placeholder="Any additional information you'd like to include with your application..."
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Submitting...' : 'Submit Application'}
-            </button>
-            <button type="button" className="btn-secondary" onClick={onClose}>
-              Cancel
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );

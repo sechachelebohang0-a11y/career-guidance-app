@@ -39,4 +39,26 @@ export const companyAPI = {
   getApplicants: (companyId) => API.get(`/applicants/company/${companyId}`),
 };
 
+// Submit course application
+export const submitCourseApplication = async (applicationData) => {
+  try {
+    const response = await fetch('/api/course-applications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(applicationData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Application submission failed');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error submitting application:', error);
+    throw error;
+  }
+};
+
 export default API;

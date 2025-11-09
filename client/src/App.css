@@ -1,6 +1,6 @@
 .App {
   text-align: left;
-  min-height: 100vh;
+  min-height: calc(100vh - 56px);
   display: flex;
   flex-direction: column;
 }
@@ -48,3 +48,101 @@ div[style*="background-color: white"]:hover {
     justify-content: center !important;
   }
 }
+
+/* App-level layout and light animations */
+.App{
+  min-height: calc(100vh - 56px);
+  display:flex;
+  flex-direction:column;
+}
+
+.app-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:12px 18px;
+  border-radius:12px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015));
+  border:1px solid rgba(255,255,255,0.04);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-weight:700;
+  color:white;
+}
+
+.brand .logo{
+  width:44px;
+  height:44px;
+  background: linear-gradient(135deg,var(--accent),var(--accent-2));
+  border-radius:10px;
+  box-shadow: 0 8px 22px rgba(124,92,255,0.22);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  font-weight:800;
+}
+
+/* main content wrapper used by pages */
+.main{
+  margin-top:12px;
+  display:block;
+}
+.footer{
+  margin-top:22px;
+  text-align:center;
+  color: rgba(255,255,255,0.5);
+  font-size:13px;
+}
+.fade-in{animation: fadeIn .36s ease both}
+@keyframes fadeIn{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+
+/* App container and header */
+.App{
+  min-height: calc(100vh - 48px);
+  display:flex;
+  flex-direction:column;
+}
+
+.app-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:10px 14px;
+  border-radius:10px;
+  background: var(--panel);
+  border:1px solid var(--border);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:700;
+  color:var(--text);
+}
+.brand .logo{
+  width:40px;height:40px;border-radius:8px;
+  background:var(--border);display:flex;align-items:center;justify-content:center;color:var(--text);
+  font-weight:700;
+}
+
+/* main content */
+.main{
+  margin-top:12px;
+  display:block;
+}
+.footer{
+  margin-top:20px;
+  text-align:center;
+  color: var(--muted);
+  font-size:13px;
+}
+.fade-in{animation: fadeIn .28s ease both}
+@keyframes fadeIn{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none}}

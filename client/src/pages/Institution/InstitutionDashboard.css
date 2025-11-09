@@ -471,6 +471,27 @@
   cursor: not-allowed;
 }
 
+/* Institution pages — clean layout */
+.institution-hero {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.manage-list {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.manage-item {
+  padding: 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .institution-dashboard {

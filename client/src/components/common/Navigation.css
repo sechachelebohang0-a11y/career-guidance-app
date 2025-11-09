@@ -132,3 +132,45 @@
     display: flex;
   }
 }
+
+/* Nav — compact glass bar */
+nav.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 14px;
+  border-radius:12px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border:1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 10px 30px rgba(2,6,23,0.45);
+}
+
+/* Top navigation — neutral and readable */
+nav.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px;
+  border-radius:10px;
+  background:var(--panel);
+  border:1px solid var(--border);
+}
+
+nav .nav-links{display:flex;gap:10px;align-items:center}
+.nav-links a{
+  color:var(--text);
+  text-decoration:none;
+  padding:8px 10px;
+  border-radius:8px;
+  transition: background .12s ease, color .12s ease;
+  font-weight:600;
+}
+.nav-links a:hover{
+  background: #f0f1f3;
+}
+.user-pill{
+  background:#fff;padding:8px 10px;border-radius:8px;border:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;color:var(--text);
+}

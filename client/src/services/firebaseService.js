@@ -176,12 +176,12 @@ export const applicationService = {
   }
 };
 
-// Job functions
+// Job functions - UPDATED TO USE 'jobs' COLLECTION
 export const jobService = {
   // Post a new job
   postJob: async (jobData) => {
     try {
-      const docRef = await addDoc(collection(db, 'jobPostings'), {
+      const docRef = await addDoc(collection(db, 'jobs'), {
         ...jobData,
         postedDate: serverTimestamp(),
         status: 'active',
@@ -196,7 +196,7 @@ export const jobService = {
   // Get all jobs
   getJobs: async () => {
     try {
-      const q = query(collection(db, 'jobPostings'), orderBy('postedDate', 'desc'));
+      const q = query(collection(db, 'jobs'), orderBy('postedDate', 'desc'));
       const querySnapshot = await getDocs(q);
       const jobs = [];
       querySnapshot.forEach((doc) => {
@@ -212,7 +212,7 @@ export const jobService = {
   getCompanyJobs: async (companyId) => {
     try {
       const q = query(
-        collection(db, 'jobPostings'), 
+        collection(db, 'jobs'), 
         where('companyId', '==', companyId),
         orderBy('postedDate', 'desc')
       );
@@ -230,10 +230,10 @@ export const jobService = {
   // Update job applications count
   updateJobApplications: async (jobId) => {
     try {
-      const jobDoc = await getDoc(doc(db, 'jobPostings', jobId));
+      const jobDoc = await getDoc(doc(db, 'jobs', jobId));
       if (jobDoc.exists()) {
         const currentApplications = jobDoc.data().applications || 0;
-        await updateDoc(doc(db, 'jobPostings', jobId), {
+        await updateDoc(doc(db, 'jobs', jobId), {
           applications: currentApplications + 1
         });
         return { success: true };
@@ -248,12 +248,120 @@ export const jobService = {
   // Get job by ID
   getJobById: async (jobId) => {
     try {
-      const docSnap = await getDoc(doc(db, 'jobPostings', jobId));
+      const docSnap = await getDoc(doc(db, 'jobs', jobId));
       if (docSnap.exists()) {
         return { success: true, job: { id: docSnap.id, ...docSnap.data() } };
       } else {
         return { success: false, error: 'Job not found' };
       }
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Delete job
+  deleteJob: async (jobId) => {
+    try {
+      await deleteDoc(doc(db, 'jobs', jobId));
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Update job
+  updateJob: async (jobId, jobData) => {
+    try {
+      await updateDoc(doc(db, 'jobs', jobId), {
+        ...jobData,
+        updatedAt: serverTimestamp()
+      });
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+};
+
+// Job Application functions
+export const jobApplicationService = {
+  // Apply for a job
+  applyForJob: async (applicationData) => {
+    try {
+      const applicationId = `JOBAPP${Date.now()}${Math.random().toString(36).substr(2, 5)}`;
+      const docRef = await addDoc(collection(db, 'job_applications'), {
+        ...applicationData,
+        appliedDate: serverTimestamp(),
+        status: 'pending',
+        applicationId: applicationId
+      });
+      return { success: true, id: docRef.id, applicationId: applicationId };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Get job applications by student
+  getStudentJobApplications: async (studentId) => {
+    try {
+      const q = query(
+        collection(db, 'job_applications'), 
+        where('studentId', '==', studentId),
+        orderBy('appliedDate', 'desc')
+      );
+      const querySnapshot = await getDocs(q);
+      const applications = [];
+      querySnapshot.forEach((doc) => {
+        applications.push({ id: doc.id, ...doc.data() });
+      });
+      return { success: true, applications };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Get job applications by company
+  getCompanyJobApplications: async (companyId) => {
+    try {
+      // First get jobs for this company
+      const jobsQuery = query(
+        collection(db, 'jobs'),
+        where('companyId', '==', companyId)
+      );
+      const jobsSnapshot = await getDocs(jobsQuery);
+      const jobIds = jobsSnapshot.docs.map(doc => doc.id);
+
+      if (jobIds.length === 0) {
+        return { success: true, applications: [] };
+      }
+
+      // Then get applications for these jobs
+      const applicationsQuery = query(
+        collection(db, 'job_applications'),
+        where('jobId', 'in', jobIds),
+        orderBy('appliedDate', 'desc')
+      );
+      
+      const applicationsSnapshot = await getDocs(applicationsQuery);
+      const applications = [];
+      applicationsSnapshot.forEach((doc) => {
+        applications.push({ id: doc.id, ...doc.data() });
+      });
+      
+      return { success: true, applications };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Update job application status
+  updateJobApplicationStatus: async (applicationId, status) => {
+    try {
+      await updateDoc(doc(db, 'job_applications', applicationId), {
+        status: status,
+        updatedAt: serverTimestamp()
+      });
+      return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -438,13 +546,14 @@ export const adminService = {
   // Get system statistics
   getSystemStats: async () => {
     try {
-      // Get counts for different collections
-      const [usersSnapshot, coursesSnapshot, applicationsSnapshot, jobsSnapshot, institutionsSnapshot] = await Promise.all([
+      // Get counts for different collections - UPDATED COLLECTION NAMES
+      const [usersSnapshot, coursesSnapshot, applicationsSnapshot, jobsSnapshot, institutionsSnapshot, jobApplicationsSnapshot] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'courses')),
         getDocs(collection(db, 'applications')),
-        getDocs(collection(db, 'jobPostings')),
-        getDocs(collection(db, 'institutions'))
+        getDocs(collection(db, 'jobs')),
+        getDocs(collection(db, 'institutions')),
+        getDocs(collection(db, 'job_applications'))
       ]);
 
       const stats = {
@@ -453,6 +562,7 @@ export const adminService = {
         totalApplications: applicationsSnapshot.size,
         totalJobs: jobsSnapshot.size,
         totalInstitutions: institutionsSnapshot.size,
+        totalJobApplications: jobApplicationsSnapshot.size,
         lastUpdated: new Date()
       };
 
@@ -467,6 +577,20 @@ export const adminService = {
     try {
       const q = query(
         collection(db, 'applications'),
+        where('status', '==', 'pending')
+      );
+      const querySnapshot = await getDocs(q);
+      return { success: true, count: querySnapshot.size };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Get pending job applications count
+  getPendingJobApplications: async () => {
+    try {
+      const q = query(
+        collection(db, 'job_applications'),
         where('status', '==', 'pending')
       );
       const querySnapshot = await getDocs(q);
