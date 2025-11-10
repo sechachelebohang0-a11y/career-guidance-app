@@ -50,25 +50,31 @@ function CourseApplicationForm({ course, onClose, onSuccess }) {
         return;
       }
 
+      // Validate course data and provide fallbacks for undefined values
       const applicationData = {
         studentId: user.uid,
-        studentName: formData.studentName,
-        studentEmail: formData.email,
-        courseId: course.id,
-        courseName: course.name,
-        institutionId: course.institutionId || 'unknown',
-        institutionName: course.institution,
-        qualifications: formData.qualifications,
-        previousSchool: formData.previousSchool,
-        birthDate: formData.birthDate,
+        studentName: formData.studentName || '',
+        studentEmail: formData.email || '',
+        courseId: course?.id || 'unknown',
+        courseName: course?.name || 'Unknown Course',
+        institutionId: course?.institutionId || 'unknown',
+        institutionName: course?.institution || 'Unknown Institution',
+        qualifications: formData.qualifications || '',
+        previousSchool: formData.previousSchool || '',
+        birthDate: formData.birthDate || '',
         status: 'pending',
         appliedDate: new Date(),
         applicationId: `APP${Date.now()}${Math.random().toString(36).substr(2, 5)}`
       };
 
-      console.log('📝 Submitting application:', applicationData);
+      // Remove any undefined values before sending to Firestore
+      const sanitizedApplicationData = Object.fromEntries(
+        Object.entries(applicationData).filter(([_, value]) => value !== undefined)
+      );
+
+      console.log('📝 Submitting application:', sanitizedApplicationData);
       
-      const response = await applicationService.submitApplication(applicationData);
+      const response = await applicationService.submitApplication(sanitizedApplicationData);
       
       if (response.success) {
         console.log('✅ Application submitted successfully:', response);
@@ -79,8 +85,8 @@ function CourseApplicationForm({ course, onClose, onSuccess }) {
         // Call success callback with complete application data
         onSuccess({
           id: response.id,
-          applicationId: applicationData.applicationId,
-          ...applicationData
+          applicationId: sanitizedApplicationData.applicationId,
+          ...sanitizedApplicationData
         });
       } else {
         throw new Error(response.error || 'Failed to submit application');
@@ -110,6 +116,16 @@ function CourseApplicationForm({ course, onClose, onSuccess }) {
     if (e.target === e.currentTarget) {
       onClose();
     }
+  };
+
+  // Get course institution name with fallback
+  const getInstitutionName = () => {
+    return course?.institution || 'Unknown Institution';
+  };
+
+  // Get course name with fallback
+  const getCourseName = () => {
+    return course?.name || 'Unknown Course';
   };
 
   return (
@@ -147,9 +163,9 @@ function CourseApplicationForm({ course, onClose, onSuccess }) {
           paddingBottom: '15px'
         }}>
           <div>
-            <h2 style={{ margin: 0, color: '#2c3e50' }}>Apply for {course.name}</h2>
+            <h2 style={{ margin: 0, color: '#2c3e50' }}>Apply for {getCourseName()}</h2>
             <p style={{ margin: '5px 0 0 0', color: '#7f8c8d', fontSize: '14px' }}>
-              {course.institution}
+              {getInstitutionName()}
             </p>
           </div>
           <button 
@@ -165,7 +181,8 @@ function CourseApplicationForm({ course, onClose, onSuccess }) {
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              transition: 'background-color 0.2s ease'
             }}
             onMouseOver={(e) => e.target.style.backgroundColor = '#f0f0f0'}
             onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
@@ -198,8 +215,25 @@ function CourseApplicationForm({ course, onClose, onSuccess }) {
               value={formData.studentName}
               onChange={handleChange}
               required
-              style={inputStyle}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e1e5e9',
+                borderRadius: '6px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                fontFamily: 'inherit'
+              }}
               placeholder="Enter your full name"
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3498db';
+                e.target.style.boxShadow = '0 0 0 3px rgba(52, 152, 219, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e1e5e9';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
 
@@ -213,8 +247,25 @@ function CourseApplicationForm({ course, onClose, onSuccess }) {
               value={formData.email}
               onChange={handleChange}
               required
-              style={inputStyle}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e1e5e9',
+                borderRadius: '6px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                fontFamily: 'inherit'
+              }}
               placeholder="your.email@example.com"
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3498db';
+                e.target.style.boxShadow = '0 0 0 3px rgba(52, 152, 219, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e1e5e9';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
 
@@ -228,7 +279,24 @@ function CourseApplicationForm({ course, onClose, onSuccess }) {
               value={formData.birthDate}
               onChange={handleChange}
               required
-              style={inputStyle}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e1e5e9',
+                borderRadius: '6px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                fontFamily: 'inherit'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3498db';
+                e.target.style.boxShadow = '0 0 0 3px rgba(52, 152, 219, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e1e5e9';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
 
@@ -242,8 +310,25 @@ function CourseApplicationForm({ course, onClose, onSuccess }) {
               value={formData.previousSchool}
               onChange={handleChange}
               required
-              style={inputStyle}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e1e5e9',
+                borderRadius: '6px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                fontFamily: 'inherit'
+              }}
               placeholder="E.g., Lesotho High School, Maseru"
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3498db';
+                e.target.style.boxShadow = '0 0 0 3px rgba(52, 152, 219, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e1e5e9';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
 
@@ -257,8 +342,27 @@ function CourseApplicationForm({ course, onClose, onSuccess }) {
               onChange={handleChange}
               required
               rows="5"
-              style={{ ...inputStyle, resize: 'vertical', minHeight: '120px' }}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e1e5e9',
+                borderRadius: '6px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                fontFamily: 'inherit',
+                resize: 'vertical',
+                minHeight: '120px'
+              }}
               placeholder="List your high school subjects, grades, certificates, and any other relevant achievements..."
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3498db';
+                e.target.style.boxShadow = '0 0 0 3px rgba(52, 152, 219, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e1e5e9';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
 
@@ -325,26 +429,5 @@ function CourseApplicationForm({ course, onClose, onSuccess }) {
     </div>
   );
 }
-
-const inputStyle = {
-  width: '100%',
-  padding: '12px',
-  border: '2px solid #e1e5e9',
-  borderRadius: '6px',
-  fontSize: '16px',
-  boxSizing: 'border-box',
-  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-  fontFamily: 'inherit'
-};
-
-// Add focus styles
-const inputStyleWithFocus = {
-  ...inputStyle,
-  ':focus': {
-    borderColor: '#3498db',
-    boxShadow: '0 0 0 3px rgba(52, 152, 219, 0.1)',
-    outline: 'none'
-  }
-};
 
 export default CourseApplicationForm;
