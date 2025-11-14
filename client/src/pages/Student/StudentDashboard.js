@@ -1109,55 +1109,16 @@ const StudentOverview = ({ applications, jobs, notifications, unreadCount, onMar
 
   return (
     <div className="student-overview">
-      <h2>Student Overview</h2>
+      <h2></h2>
       
-      {hasAdmissionOffers && (
-        <div className="admission-alert">
-          <div className="alert alert-success">
-            <h3>🎉 Admission Offers Available!</h3>
-            <p>You have been admitted to {stats.admittedApplications} program(s).</p>
-            <button 
-              className="btn-primary" 
-              onClick={onAdmissionSelection}
-            >
-              Select Admission Offer
-            </button>
-            <p><small>You must select one offer to enroll. Choosing one will automatically decline others.</small></p>
-          </div>
-        </div>
-      )}
       
-      <div className="stats-grid">
-        <div className="stat-card">
-          <h3>Total Applications</h3>
-          <p className="stat-number">{stats.totalApplications}</p>
-          <small>All course applications</small>
-        </div>
+      
+      
         
-        <div className="stat-card">
-          <h3>Pending</h3>
-          <p className="stat-number">{stats.pendingApplications}</p>
-          <small>Under review</small>
-        </div>
+      
         
-        <div className="stat-card">
-          <h3>Admitted</h3>
-          <p className="stat-number">{stats.admittedApplications}</p>
-          <small>Admission offers</small>
-        </div>
         
-        <div className="stat-card">
-          <h3>Accepted</h3>
-          <p className="stat-number">{stats.acceptedApplications}</p>
-          <small>Enrolled programs</small>
-        </div>
-        
-        <div className="stat-card">
-          <h3>Available Jobs</h3>
-          <p className="stat-number">{stats.availableJobs}</p>
-          <small>Job opportunities</small>
-        </div>
-      </div>
+      
 
       <div className="overview-sections">
         <div className="recent-applications">

@@ -84,23 +84,18 @@ export const AuthProvider = ({ children }) => {
           console.log('✅ User is verified, setting user state');
           setUser(firebaseUser);
           
-          // Fetch user data
+          // Fetch user data - IMPORTANT: Wait for this to complete!
           const userData = await fetchUserData(firebaseUser.uid);
           if (userData) {
+            console.log('✅ User data loaded from Firestore:', userData.role);
             setUserData(userData);
           } else {
-            // Create default user data if not exists
-            const defaultUserData = {
-              email: firebaseUser.email,
-              role: 'student',
-              name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
-              createdAt: new Date(),
-              profileCompleted: false,
-              emailVerified: true
-            };
-            
-            await setDoc(doc(db, 'users', firebaseUser.uid), defaultUserData);
-            setUserData(defaultUserData);
+            console.log('❌ No user data found in Firestore for UID:', firebaseUser.uid);
+            // Don't create default data here - this means the user document doesn't exist
+            // This should not happen for verified users who completed signup
+            setUser(null);
+            setUserData(null);
+            await signOut(auth); // Log them out since their account is incomplete
           }
         } else {
           // Email not verified
@@ -213,6 +208,7 @@ export const AuthProvider = ({ children }) => {
       
       // Save to Firestore
       await setDoc(doc(db, 'users', user.uid), userData);
+      console.log('✅ User data saved to Firestore with role:', role);
       
       // Send email verification
       await sendVerificationEmail(user);
