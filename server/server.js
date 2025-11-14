@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
 
@@ -24,6 +26,38 @@ try {
 }
 
 const db = admin.firestore();
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'uploads/documents';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only PDF, JPEG, and PNG are allowed.'), false);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 // Authentication endpoint
 app.post('/api/auth/login', async (req, res) => {
@@ -351,6 +385,153 @@ app.get('/api/institutions', async (req, res) => {
   }
 });
 
+// Document upload endpoint
+app.post('/api/upload/document', upload.single('document'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Get user ID from authentication (using mock authentication for now)
+    // In a real app, you'd get this from your auth middleware
+    const userId = req.body.userId || 'mock-user-id';
+
+    // Here you would typically upload to cloud storage (Firebase Storage, AWS S3, etc.)
+    // For now, we'll store file info in the database
+    const documentData = {
+      id: Date.now().toString(),
+      userId: userId,
+      name: req.file.originalname,
+      filename: req.file.filename,
+      path: req.file.path,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+      uploadedAt: new Date().toISOString(),
+      url: `/api/documents/${req.file.filename}` // Temporary URL for local files
+    };
+
+    // Save document metadata to database (Firestore example)
+    if (db) {
+      await db.collection('documents').doc(documentData.id).set(documentData);
+    }
+
+    res.json({
+      success: true,
+      document: documentData,
+      message: 'Document uploaded successfully!'
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Upload failed' 
+    });
+  }
+});
+
+// Serve uploaded files
+app.get('/api/documents/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, 'uploads/documents', filename);
+  
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).json({ 
+      success: false,
+      error: 'File not found' 
+    });
+  }
+});
+
+// Get user documents
+app.get('/api/documents', async (req, res) => {
+  try {
+    const userId = req.query.userId || 'mock-user-id'; // From query params for now
+    
+    if (!db) {
+      // Fallback to mock data
+      return res.json({
+        success: true,
+        documents: []
+      });
+    }
+
+    const snapshot = await db.collection('documents')
+      .where('userId', '==', userId)
+      .orderBy('uploadedAt', 'desc')
+      .get();
+    
+    const documents = [];
+    snapshot.forEach(doc => {
+      documents.push(doc.data());
+    });
+    
+    res.json({
+      success: true,
+      documents
+    });
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch documents' 
+    });
+  }
+});
+
+// Delete document
+app.delete('/api/documents/:docId', async (req, res) => {
+  try {
+    const { docId } = req.params;
+    const userId = req.query.userId || 'mock-user-id';
+    
+    if (!db) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Database not available' 
+      });
+    }
+
+    const docRef = db.collection('documents').doc(docId);
+    const doc = await docRef.get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Document not found' 
+      });
+    }
+    
+    if (doc.data().userId !== userId) {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Not authorized to delete this document' 
+      });
+    }
+    
+    // Delete file from storage
+    const filePath = doc.data().path;
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    
+    // Delete from database
+    await docRef.delete();
+    
+    res.json({ 
+      success: true,
+      message: 'Document deleted successfully' 
+    });
+  } catch (error) {
+    console.error('Error deleting document:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to delete document' 
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/', (req, res) => {
   const firebaseStatus = db ? 'Connected' : 'Not connected (using mock data)';
@@ -374,4 +555,5 @@ app.listen(PORT, () => {
   console.log(`💼 Jobs: POST /api/jobs, GET /api/jobs`);
   console.log(`🎓 Courses: GET /api/courses`);
   console.log(`🏫 Institutions: GET /api/institutions`);
+  console.log(`📁 Documents: POST /api/upload/document, GET /api/documents`);
 });
