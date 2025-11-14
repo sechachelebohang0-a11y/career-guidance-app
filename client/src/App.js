@@ -32,7 +32,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
               
-              {/* Protected Routes */}
+              {/* Protected Routes - Only accessible after email verification */}
               <Route path="/student" element={
                 <ProtectedRoute allowedRoles={['student', 'admin', 'institution', 'company']}>
                   <StudentDashboard />

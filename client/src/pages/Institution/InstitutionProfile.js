@@ -29,6 +29,38 @@ const InstitutionProfile = ({ institution, onUpdate }) => {
     }
   }, [institution]);
 
+  // Safe date formatting function
+  const formatDate = (dateValue) => {
+    if (!dateValue) return 'N/A';
+    
+    try {
+      // If it's a Firestore Timestamp object
+      if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+        return dateValue.toDate().toLocaleDateString();
+      }
+      // If it's already a Date object
+      else if (dateValue instanceof Date) {
+        return dateValue.toLocaleDateString();
+      }
+      // If it's a string that can be converted to Date
+      else if (typeof dateValue === 'string') {
+        const date = new Date(dateValue);
+        return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'N/A';
+      }
+      // If it's a number (timestamp)
+      else if (typeof dateValue === 'number') {
+        const date = new Date(dateValue);
+        return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'N/A';
+      }
+      else {
+        return 'N/A';
+      }
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'N/A';
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -197,12 +229,12 @@ const InstitutionProfile = ({ institution, onUpdate }) => {
               </div>
               <div className="info-item">
                 <strong>Registered:</strong>
-                <span>{institution.createdAt?.toDate().toLocaleDateString()}</span>
+                <span>{formatDate(institution.createdAt)}</span>
               </div>
               {institution.updatedAt && (
                 <div className="info-item">
                   <strong>Last Updated:</strong>
-                  <span>{institution.updatedAt?.toDate().toLocaleDateString()}</span>
+                  <span>{formatDate(institution.updatedAt)}</span>
                 </div>
               )}
             </div>

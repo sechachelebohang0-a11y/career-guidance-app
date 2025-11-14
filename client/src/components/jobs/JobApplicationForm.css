@@ -11,13 +11,13 @@
 }
 
 .modal-overlay {
-  position: absolute;
+  position: fixed; /* Changed from absolute to fixed */
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  z-index: 1001; /* Ensure overlay is behind modal content but above page */
 }
 
 .job-application-form {
@@ -30,6 +30,7 @@
   overflow-y: auto;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   animation: slideUp 0.3s ease-out;
+  z-index: 1002; /* Ensure modal content is above overlay */
 }
 
 @keyframes slideUp {
@@ -189,8 +190,7 @@ form {
   opacity: 0;
 }
 
-.file-upload::before {
-  content: '📁 Upload';
+.file-upload-label {
   display: inline-block;
   background: #667eea;
   color: white;
@@ -202,7 +202,7 @@ form {
   transition: background-color 0.3s ease;
 }
 
-.file-upload:hover::before {
+.file-upload-label:hover {
   background: #5a6fd8;
 }
 
@@ -292,19 +292,43 @@ form {
 }
 
 /* Job application form — clear, readable */
-.job-form{
-  padding:14px;
-  border-radius:10px;
-  background:var(--panel);
-  border:1px solid var(--border);
+.job-form {
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--panel, #f8f9fa);
+  border: 1px solid var(--border, #e1e5e9);
 }
-.job-form h3{margin:0 0 10px 0;color:var(--text)}
-.field-row{display:flex;gap:12px;flex-wrap:wrap}
-.field-row .col{flex:1;min-width:160px}
-.file-input{
-  display:flex;gap:8px;align-items:center;padding:10px;border-radius:8px;background:#fff;border:1px dashed var(--border)
+
+.job-form h3 {
+  margin: 0 0 10px 0;
+  color: var(--text, #333);
 }
-.small-note{font-size:12px;color:var(--muted)}
+
+.field-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.field-row .col {
+  flex: 1;
+  min-width: 160px;
+}
+
+.file-input {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px dashed var(--border, #e1e5e9);
+}
+
+.small-note {
+  font-size: 12px;
+  color: var(--muted, #666);
+}
 
 /* Responsive Design */
 @media (max-width: 768px) {

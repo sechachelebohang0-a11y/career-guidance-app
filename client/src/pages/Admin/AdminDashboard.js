@@ -353,7 +353,7 @@ const AdminDashboard = () => {
           className={activeTab === 'overview' ? 'nav-btn active' : 'nav-btn'}
           onClick={() => setActiveTab('overview')}
         >
-          Overview
+          
         </button>
         <button 
           className={activeTab === 'institutions' ? 'nav-btn active' : 'nav-btn'}
@@ -416,46 +416,7 @@ const AdminOverview = ({ institutions, companies, users, admissions }) => {
     totalAdmissions: admissions.length,
   };
 
-  return (
-    <div className="admin-overview">
-      <h2>System Overview</h2>
-      
-      <div className="stats-grid">
-        <div className="stat-card">
-          <h3>Total Institutions</h3>
-          <p className="stat-number">{stats.totalInstitutions}</p>
-          <small>Active: {stats.activeInstitutions}</small>
-        </div>
-        
-        <div className="stat-card">
-          <h3>Total Companies</h3>
-          <p className="stat-number">{stats.totalCompanies}</p>
-          <small>Active: {stats.activeCompanies}</small>
-        </div>
-        
-        <div className="stat-card">
-          <h3>Total Users</h3>
-          <p className="stat-number">{stats.totalUsers}</p>
-          <small>Active: {stats.activeUsers}</small>
-        </div>
-        
-        <div className="stat-card">
-          <h3>Admissions</h3>
-          <p className="stat-number">{stats.totalAdmissions}</p>
-          <small>Published: {stats.publishedAdmissions}</small>
-        </div>
-        
-        <div className="stat-card">
-          <h3>User Distribution</h3>
-          <div className="user-distribution">
-            <div>Students: {stats.students}</div>
-            <div>Institutions: {stats.institutions}</div>
-            <div>Companies: {stats.companies}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  
 };
 
 // Enhanced Institutions Management

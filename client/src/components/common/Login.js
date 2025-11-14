@@ -10,13 +10,13 @@ function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
 
-  const { login, signup } = useAuth();
+  const { login, signup, resendVerificationEmail } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const from = location.state?.from?.pathname || `/${role}`;
 
   // Validation functions
   const validateName = (name) => {
@@ -62,6 +62,7 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
 
     // Validate form before submission
     if (!validateForm()) {
@@ -76,19 +77,59 @@ function Login() {
       if (isSignUp) {
         // Sign up new user
         result = await signup(email, password, role, name.trim());
+        
+        if (result.success) {
+          setSuccessMessage(result.message);
+          setShowVerificationMessage(true);
+          // Clear form
+          setEmail('');
+          setPassword('');
+          setName('');
+        } else {
+          setError(result.error);
+        }
       } else {
         // Log in existing user
         result = await login(email, password);
-      }
-      
-      if (result.success) {
-        navigate(from, { replace: true });
-      } else {
-        setError(result.error);
+        
+        if (result.success) {
+          // Get the actual user role from the returned userData
+          const userRole = result.userData?.role || 'student';
+          const redirectPath = location.state?.from?.pathname || `/${userRole}`;
+          
+          setSuccessMessage('Login successful! Redirecting...');
+          console.log('✅ Login successful, user role:', userRole, 'redirecting to:', redirectPath);
+          
+          // Add a small delay to ensure state is fully updated
+          setTimeout(() => {
+            navigate(redirectPath, { replace: true });
+          }, 1000);
+        } else {
+          setError(result.error);
+        }
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('An unexpected error occurred. Please try again.');
       console.error('Auth error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const result = await resendVerificationEmail();
+      if (result.success) {
+        setSuccessMessage('Verification email sent! Please check your inbox.');
+      } else {
+        setError(result.error || 'Failed to resend verification email.');
+      }
+    } catch (err) {
+      setError('Failed to resend verification email. Please try again.');
+      console.error('Resend verification error:', err);
     } finally {
       setLoading(false);
     }
@@ -133,10 +174,13 @@ function Login() {
     setIsSignUp(!isSignUp);
     // Clear all errors and fields when toggling
     setError('');
+    setSuccessMessage('');
     setFieldErrors({});
+    setShowVerificationMessage(false);
     if (!isSignUp) {
-      // When switching to signup, clear name field
+      // When switching to signup, clear name field and set default role
       setName('');
+      setRole('student');
     }
   };
 
@@ -159,86 +203,279 @@ function Login() {
 
   const inputStyle = (hasError) => ({
     width: '100%',
-    padding: '10px',
-    border: `1px solid ${hasError ? '#dc3545' : '#ddd'}`,
-    borderRadius: '5px',
+    padding: '12px',
+    border: `2px solid ${hasError ? '#dc3545' : '#e1e5e9'}`,
+    borderRadius: '8px',
     fontSize: '16px',
     boxSizing: 'border-box',
-    backgroundColor: hasError ? '#fff5f5' : 'white'
+    backgroundColor: hasError ? '#fff5f5' : 'white',
+    transition: 'border-color 0.3s ease',
+    fontFamily: 'inherit'
   });
+
+  const buttonStyle = (isPrimary = true, isDisabled = false) => ({
+    width: '100%',
+    padding: '12px',
+    backgroundColor: isDisabled 
+      ? '#95a5a6' 
+      : isPrimary 
+        ? '#3498db' 
+        : '#6c757d',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '16px',
+    cursor: isDisabled ? 'not-allowed' : 'pointer',
+    fontWeight: 'bold',
+    transition: 'all 0.3s ease',
+    opacity: isDisabled ? 0.7 : 1,
+    fontFamily: 'inherit'
+  });
+
+  // Show verification success message
+  if (showVerificationMessage) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '80vh',
+        padding: '20px',
+        backgroundColor: '#f8f9fa'
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          padding: '40px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+          width: '100%',
+          maxWidth: '500px',
+          textAlign: 'center',
+          border: '1px solid #e1e5e9'
+        }}>
+          <div style={{ 
+            fontSize: '64px', 
+            color: '#28a745',
+            marginBottom: '20px'
+          }}>
+            ✉️
+          </div>
+          
+          <h2 style={{ 
+            color: '#28a745', 
+            marginBottom: '20px',
+            fontSize: '1.75rem',
+            fontWeight: '600'
+          }}>
+            Verify Your Email Address
+          </h2>
+          
+          <p style={{ 
+            marginBottom: '20px', 
+            lineHeight: '1.6',
+            color: '#555',
+            fontSize: '16px'
+          }}>
+            We've sent a verification email to <strong style={{color: '#2c3e50'}}>{email}</strong>. 
+            Please check your inbox and click the verification link to activate your account.
+          </p>
+          
+          <p style={{ 
+            marginBottom: '30px', 
+            lineHeight: '1.6',
+            color: '#666',
+            fontSize: '14px',
+            fontStyle: 'italic'
+          }}>
+            <strong>Important:</strong> You must verify your email before you can log in to your account.
+            If you don't see the email, check your spam folder.
+          </p>
+          
+          <div style={{ 
+            display: 'flex', 
+            gap: '15px', 
+            justifyContent: 'center', 
+            flexWrap: 'wrap',
+            marginBottom: '20px'
+          }}>
+            <button
+              onClick={handleResendVerification}
+              disabled={loading}
+              style={buttonStyle(true, loading)}
+            >
+              {loading ? 'Sending...' : 'Resend Verification Email'}
+            </button>
+            
+            <button
+              onClick={handleToggleSignUp}
+              disabled={loading}
+              style={{
+                ...buttonStyle(false, loading),
+                backgroundColor: 'transparent',
+                color: '#3498db',
+                border: '2px solid #3498db'
+              }}
+            >
+              Back to Login
+            </button>
+          </div>
+          
+          {successMessage && (
+            <div style={{
+              backgroundColor: '#d4edda',
+              color: '#155724',
+              padding: '12px',
+              borderRadius: '8px',
+              marginTop: '20px',
+              border: '1px solid #c3e6cb',
+              fontSize: '14px'
+            }}>
+              ✅ {successMessage}
+            </div>
+          )}
+
+          {error && (
+            <div style={{
+              backgroundColor: '#f8d7da',
+              color: '#721c24',
+              padding: '12px',
+              borderRadius: '8px',
+              marginTop: '20px',
+              border: '1px solid #f5c6cb',
+              fontSize: '14px'
+            }}>
+              ❌ {error}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      minHeight: '80vh',
-      padding: '20px'
+      minHeight: '100vh',
+      padding: '20px',
+      backgroundColor: '#f8f9fa'
     }}>
       <div style={{
         backgroundColor: 'white',
         padding: '40px',
-        borderRadius: '10px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        borderRadius: '12px',
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
         width: '100%',
-        maxWidth: '400px'
+        maxWidth: '450px',
+        border: '1px solid #e1e5e9'
       }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#2c3e50' }}>
-          {isSignUp ? ' Create Account' : ' Login to Career Guidance'}
-        </h2>
+        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <h2 style={{ 
+            margin: '0 0 10px 0', 
+            color: '#2c3e50',
+            fontSize: '1.75rem',
+            fontWeight: '600'
+          }}>
+            {isSignUp ? 'Create Account' : 'Welcome Back'}
+          </h2>
+          <p style={{ 
+            color: '#7f8c8d', 
+            margin: 0,
+            fontSize: '14px'
+          }}>
+            {isSignUp ? 'Join our career guidance platform' : 'Sign in to your account'}
+          </p>
+        </div>
 
         {error && (
           <div style={{
             backgroundColor: '#f8d7da',
             color: '#721c24',
-            padding: '10px',
-            borderRadius: '5px',
+            padding: '12px',
+            borderRadius: '8px',
             marginBottom: '20px',
             textAlign: 'center',
-            border: '1px solid #f5c6cb'
+            border: '1px solid #f5c6cb',
+            fontSize: '14px'
           }}>
-            {error}
+            ❌ {error}
+          </div>
+        )}
+
+        {successMessage && (
+          <div style={{
+            backgroundColor: '#d4edda',
+            color: '#155724',
+            padding: '12px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            textAlign: 'center',
+            border: '1px solid #c3e6cb',
+            fontSize: '14px'
+          }}>
+            ✅ {successMessage}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
           {isSignUp && (
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Full Name *
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                required={isSignUp}
-                style={inputStyle(fieldErrors.name)}
-                placeholder="Enter your full name (letters only)"
-                maxLength={50}
-              />
-              {renderError('name')}
-            </div>
+            <>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontWeight: '600',
+                  color: '#2c3e50',
+                  fontSize: '14px'
+                }}>
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  required={isSignUp}
+                  style={inputStyle(fieldErrors.name)}
+                  placeholder="Enter your full name"
+                  maxLength={50}
+                />
+                {renderError('name')}
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontWeight: '600',
+                  color: '#2c3e50',
+                  fontSize: '14px'
+                }}>
+                  I am a
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => handleRoleChange(e.target.value)}
+                  style={inputStyle(false)}
+                >
+                  <option value="student">Student</option>
+                  <option value="institution">Institution</option>
+                  <option value="company">Company</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </>
           )}
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Role
-            </label>
-            <select
-              value={role}
-              onChange={(e) => handleRoleChange(e.target.value)}
-              style={inputStyle(false)}
-            >
-              <option value="student">Student</option>
-              <option value="institution">Institution</option>
-              <option value="company">Company</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Email *
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '8px', 
+              fontWeight: '600',
+              color: '#2c3e50',
+              fontSize: '14px'
+            }}>
+              Email Address *
             </label>
             <input
               type="email"
@@ -246,14 +483,20 @@ function Login() {
               onChange={(e) => handleEmailChange(e.target.value)}
               required
               style={inputStyle(fieldErrors.email)}
-              placeholder="Enter your email"
+              placeholder="your.email@example.com"
               maxLength={100}
             />
             {renderError('email')}
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+          <div style={{ marginBottom: '25px' }}>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '8px', 
+              fontWeight: '600',
+              color: '#2c3e50',
+              fontSize: '14px'
+            }}>
               Password *
             </label>
             <input
@@ -266,8 +509,13 @@ function Login() {
               minLength={isSignUp ? 6 : 1}
             />
             {isSignUp && (
-              <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '5px' }}>
-                Password should be at least 6 characters
+              <p style={{ 
+                fontSize: '12px', 
+                color: '#7f8c8d', 
+                marginTop: '6px',
+                marginBottom: '0'
+              }}>
+                Password must be at least 6 characters long
               </p>
             )}
             {renderError('password')}
@@ -276,24 +524,37 @@ function Login() {
           <button
             type="submit"
             disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: loading ? '#95a5a6' : '#3498db',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              fontSize: '16px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontWeight: 'bold',
-              transition: 'background-color 0.3s ease'
+            style={buttonStyle(true, loading)}
+            onMouseEnter={(e) => {
+              if (!loading) {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.3)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = 'none';
+              }
             }}
           >
-            {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Login')}
+            {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+        <div style={{ 
+          textAlign: 'center', 
+          marginTop: '25px',
+          paddingTop: '20px',
+          borderTop: '1px solid #e1e5e9'
+        }}>
+          <p style={{ 
+            color: '#7f8c8d', 
+            margin: '0 0 15px 0',
+            fontSize: '14px'
+          }}>
+            {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+          </p>
           <button
             type="button"
             onClick={handleToggleSignUp}
@@ -303,11 +564,41 @@ function Login() {
               color: '#3498db',
               cursor: 'pointer',
               textDecoration: 'underline',
-              fontSize: '14px'
+              fontSize: '14px',
+              fontWeight: '600',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              transition: 'background-color 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#f8f9fa';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'transparent';
             }}
           >
-            {isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign up"}
+            {isSignUp ? 'Sign in to your account' : 'Create new account'}
           </button>
+        </div>
+
+        <div style={{ 
+          marginTop: '20px',
+          padding: '15px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '8px',
+          border: '1px solid #e1e5e9'
+        }}>
+          <p style={{ 
+            margin: '0', 
+            color: '#7f8c8d', 
+            fontSize: '12px',
+            textAlign: 'center',
+            lineHeight: '1.4'
+          }}>
+            <strong>Note:</strong> {isSignUp 
+              ? 'After signing up, check your email for verification link.' 
+              : 'The system will automatically detect your account type and redirect you to the appropriate dashboard.'}
+          </p>
         </div>
       </div>
     </div>

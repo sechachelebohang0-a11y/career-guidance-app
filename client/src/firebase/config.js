@@ -4,7 +4,6 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 
-// Your web app's Firebase configuration for career-platform-22039
 const firebaseConfig = {
   apiKey: "AIzaSyCXVUU69J3hKE3CSVJORO4sBNqG53RnKm8",
   authDomain: "career-platform-22039.firebaseapp.com",
@@ -27,7 +26,7 @@ export const auth = getAuth(app);
 // Initialize Cloud Firestore and get a reference to the service
 export const db = getFirestore(app);
 
-// Initialize Firebase Storage
-export const storage = getStorage(app);
+// Initialize Firebase Storage with explicit bucket URL
+export const storage = getStorage(app, "gs://career-platform-22039.firebasestorage.app");
 
 export default app;
